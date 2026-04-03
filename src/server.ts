@@ -80,6 +80,10 @@ async function main() {
     { name: 'signal', version: '0.1.0' },
     {
       capabilities: {
+        experimental: {
+          'claude/channel': {},
+          'claude/channel/permission': {},
+        },
         tools: {},
       },
       instructions: [
