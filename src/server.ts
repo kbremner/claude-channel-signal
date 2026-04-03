@@ -64,7 +64,7 @@ export async function routeInboundMessage(
 // --- Main server ---
 
 async function main() {
-  const config = await loadConfig()
+  const config = loadConfig()
 
   const signal = new SignalClient(config.baseUrl, config.accountNumber)
 
