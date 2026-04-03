@@ -123,4 +123,53 @@ describe('routeInboundMessage', () => {
 
     expect(ctx.notify).not.toHaveBeenCalled()
   })
+
+  it('prefers dataMessage over syncMessage when both present', async () => {
+    const ctx = makeCtx()
+
+    await routeInboundMessage(ctx, {
+      source: '+441234567890',
+      sourceNumber: '+441234567890',
+      sourceName: 'Kyle',
+      dataMessage: {
+        message: 'from dataMessage',
+        timestamp: 111,
+        groupInfo: { groupId: 'rawBase64Id', groupName: 'Budget' },
+      },
+      syncMessage: {
+        sentMessage: {
+          message: 'from syncMessage',
+          timestamp: 222,
+          groupInfo: { groupId: 'rawBase64Id', groupName: 'Budget' },
+        },
+      },
+    })
+
+    expect(ctx.notify).toHaveBeenCalledTimes(1)
+    const call = (ctx.notify as ReturnType<typeof mock>).mock.calls[0][0] as any
+    expect(call.params.content).toBe('from dataMessage')
+    expect(call.params.meta.timestamp).toBe('111')
+  })
+})
+
+describe('permission reply detection', () => {
+  it('routeInboundMessage forwards permission-like messages (interception is in main)', async () => {
+    const ctx = makeCtx()
+
+    // "yes abcde" looks like a permission reply, but routeInboundMessage
+    // doesn't know about permissions — it forwards as a normal message.
+    // The interception happens in main() onMessage before routeInboundMessage.
+    await routeInboundMessage(ctx, {
+      source: '+441234567890',
+      sourceNumber: '+441234567890',
+      sourceName: 'Kyle',
+      dataMessage: {
+        message: 'yes abcde',
+        timestamp: 1234567890,
+        groupInfo: { groupId: 'rawBase64Id', groupName: 'Budget' },
+      },
+    })
+
+    expect(ctx.notify).toHaveBeenCalledTimes(1)
+  })
 })
