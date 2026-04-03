@@ -117,7 +117,10 @@ async function main() {
       timestamp: z.string().describe('Timestamp of the message to react to'),
     },
     async ({ group_id, emoji, target_author, timestamp }) => {
-      await signal.sendReaction(group_id, emoji, target_author, Number(timestamp))
+      const group = groupsById.get(group_id)
+      if (!group) throw new Error(`Unknown group: ${group_id}`)
+
+      await signal.sendReaction(group.id, emoji, target_author, Number(timestamp))
       return { content: [{ type: 'text' as const, text: 'reacted' }] }
     }
   )
@@ -125,6 +128,26 @@ async function main() {
   // --- Permission relay ---
 
   const PERMISSION_REPLY_RE = /^\s*(y|yes|n|no)\s+([a-km-z]{5})\s*$/i
+
+  // Forward permission requests from Claude Code to Signal groups
+  const PermissionRequestSchema = z.object({
+    method: z.literal('notifications/claude/channel/permission_request'),
+    params: z.object({
+      request_id: z.string(),
+      tool_name: z.string(),
+      arguments: z.record(z.unknown()).optional(),
+    }),
+  })
+
+  mcp.server.setNotificationHandler(PermissionRequestSchema, async (notification) => {
+    const { request_id, tool_name, arguments: args } = notification.params
+    const argsStr = args ? JSON.stringify(args, null, 2) : ''
+    const text = `Permission request [${request_id}]\nTool: ${tool_name}\n${argsStr}\n\nReply "yes ${request_id}" or "no ${request_id}"`
+
+    for (const group of config.groups) {
+      await signal.sendMessage(group.id, text, group.replyPrefix)
+    }
+  })
 
   // --- Inbound message routing ---
 
