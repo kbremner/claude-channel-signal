@@ -1,14 +1,15 @@
-import { describe, it, expect, mock } from 'bun:test'
-import { routeInboundMessage, type RouteContext } from '../src/server'
-import type { SignalEnvelope } from '../src/signal-client'
-import type { GroupConfig } from '../src/config'
+import { describe, it, mock } from 'node:test'
+import assert from 'node:assert'
+import { routeInboundMessage, type RouteContext } from '../src/server.ts'
+import type { SignalEnvelope } from '../src/signal-client.ts'
+import type { GroupConfig } from '../src/config.ts'
 
 function makeCtx(overrides?: Partial<RouteContext>): RouteContext {
   return {
     allowedGroups: new Map<string, GroupConfig>([
       ['rawBase64Id', { id: 'group.abc', internalId: 'rawBase64Id', name: 'Budget', replyPrefix: '[Bot]' }],
     ]),
-    notify: mock(() => Promise.resolve()),
+    notify: mock.fn(() => Promise.resolve()),
     ...overrides,
   }
 }
@@ -28,13 +29,14 @@ describe('routeInboundMessage', () => {
       },
     })
 
-    expect(ctx.notify).toHaveBeenCalledTimes(1)
-    const call = (ctx.notify as ReturnType<typeof mock>).mock.calls[0][0] as any
-    expect(call.params.content).toBe('how much on groceries?')
-    expect(call.params.meta.sender_name).toBe('Kyle')
-    expect(call.params.meta.sender_number).toBe('+441234567890')
-    expect(call.params.meta.group_name).toBe('Budget')
-    expect(call.params.meta.group_id).toBe('group.abc')
+    const notifyMock = ctx.notify as unknown as ReturnType<typeof mock.fn>
+    assert.strictEqual(notifyMock.mock.callCount(), 1)
+    const call = notifyMock.mock.calls[0].arguments[0] as any
+    assert.strictEqual(call.params.content, 'how much on groceries?')
+    assert.strictEqual(call.params.meta.sender_name, 'Kyle')
+    assert.strictEqual(call.params.meta.sender_number, '+441234567890')
+    assert.strictEqual(call.params.meta.group_name, 'Budget')
+    assert.strictEqual(call.params.meta.group_id, 'group.abc')
   })
 
   it('forwards sync group messages as channel notifications', async () => {
@@ -53,11 +55,12 @@ describe('routeInboundMessage', () => {
       },
     })
 
-    expect(ctx.notify).toHaveBeenCalledTimes(1)
-    const call = (ctx.notify as ReturnType<typeof mock>).mock.calls[0][0] as any
-    expect(call.params.content).toBe('a message I sent')
-    expect(call.params.meta.sender_name).toBe('Kyle')
-    expect(call.params.meta.group_id).toBe('group.abc')
+    const notifyMock = ctx.notify as unknown as ReturnType<typeof mock.fn>
+    assert.strictEqual(notifyMock.mock.callCount(), 1)
+    const call = notifyMock.mock.calls[0].arguments[0] as any
+    assert.strictEqual(call.params.content, 'a message I sent')
+    assert.strictEqual(call.params.meta.sender_name, 'Kyle')
+    assert.strictEqual(call.params.meta.group_id, 'group.abc')
   })
 
   it('drops messages from non-configured groups', async () => {
@@ -74,7 +77,7 @@ describe('routeInboundMessage', () => {
       },
     })
 
-    expect(ctx.notify).not.toHaveBeenCalled()
+    assert.strictEqual((ctx.notify as unknown as ReturnType<typeof mock.fn>).mock.callCount(), 0)
   })
 
   it('ignores messages without text content', async () => {
@@ -91,7 +94,7 @@ describe('routeInboundMessage', () => {
       },
     })
 
-    expect(ctx.notify).not.toHaveBeenCalled()
+    assert.strictEqual((ctx.notify as unknown as ReturnType<typeof mock.fn>).mock.callCount(), 0)
   })
 
   it('ignores sync messages without group info (DMs)', async () => {
@@ -109,7 +112,7 @@ describe('routeInboundMessage', () => {
       },
     })
 
-    expect(ctx.notify).not.toHaveBeenCalled()
+    assert.strictEqual((ctx.notify as unknown as ReturnType<typeof mock.fn>).mock.callCount(), 0)
   })
 
   it('ignores envelopes with no dataMessage or syncMessage', async () => {
@@ -121,7 +124,7 @@ describe('routeInboundMessage', () => {
       sourceName: 'Kyle',
     } as SignalEnvelope)
 
-    expect(ctx.notify).not.toHaveBeenCalled()
+    assert.strictEqual((ctx.notify as unknown as ReturnType<typeof mock.fn>).mock.callCount(), 0)
   })
 
   it('prefers dataMessage over syncMessage when both present', async () => {
@@ -145,10 +148,11 @@ describe('routeInboundMessage', () => {
       },
     })
 
-    expect(ctx.notify).toHaveBeenCalledTimes(1)
-    const call = (ctx.notify as ReturnType<typeof mock>).mock.calls[0][0] as any
-    expect(call.params.content).toBe('from dataMessage')
-    expect(call.params.meta.timestamp).toBe('111')
+    const notifyMock = ctx.notify as unknown as ReturnType<typeof mock.fn>
+    assert.strictEqual(notifyMock.mock.callCount(), 1)
+    const call = notifyMock.mock.calls[0].arguments[0] as any
+    assert.strictEqual(call.params.content, 'from dataMessage')
+    assert.strictEqual(call.params.meta.timestamp, '111')
   })
 })
 
@@ -156,9 +160,6 @@ describe('permission reply detection', () => {
   it('routeInboundMessage forwards permission-like messages (interception is in main)', async () => {
     const ctx = makeCtx()
 
-    // "yes abcde" looks like a permission reply, but routeInboundMessage
-    // doesn't know about permissions — it forwards as a normal message.
-    // The interception happens in main() onMessage before routeInboundMessage.
     await routeInboundMessage(ctx, {
       source: '+441234567890',
       sourceNumber: '+441234567890',
@@ -170,6 +171,6 @@ describe('permission reply detection', () => {
       },
     })
 
-    expect(ctx.notify).toHaveBeenCalledTimes(1)
+    assert.strictEqual((ctx.notify as unknown as ReturnType<typeof mock.fn>).mock.callCount(), 1)
   })
 })

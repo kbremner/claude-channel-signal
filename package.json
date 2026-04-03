@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "claude-channel-signal": "src/server.ts"
+  },
   "scripts": {
-    "start": "bun run src/server.ts",
-    "test": "bun test"
+    "start": "node --experimental-strip-types src/server.ts",
+    "test": "node --experimental-strip-types --test tests/*.test.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
@@ -13,8 +16,8 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "@types/ws": "^8.5.0",
-    "bun-types": "latest",
     "typescript": "^5.7.0"
   }
 }

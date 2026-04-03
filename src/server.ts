@@ -1,8 +1,9 @@
+#!/usr/bin/env node --experimental-strip-types
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
-import { SignalClient, type SignalEnvelope } from './signal-client.js'
-import { loadConfig, type GroupConfig } from './config.js'
+import { SignalClient, type SignalEnvelope } from './signal-client.ts'
+import { loadConfig, type GroupConfig } from './config.ts'
 
 // --- Exported for testing ---
 
@@ -189,7 +190,13 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  process.stderr.write(`Fatal: ${err.message}\n`)
-  process.exit(1)
-})
+// Only run when executed directly, not when imported by tests
+import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((err) => {
+    process.stderr.write(`Fatal: ${err.message}\n`)
+    process.exit(1)
+  })
+}

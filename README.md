@@ -6,7 +6,7 @@ A Claude Code channel plugin that bridges Signal group chats to Claude Code sess
 
 - [Claude Code](https://claude.ai/claude-code) v2.1.80+
 - [signal-cli REST API](https://github.com/bbernhard/signal-cli-rest-api) running in `json-rpc` mode
-- [Bun](https://bun.sh) runtime
+- [Node.js](https://nodejs.org) v22.6+ (uses native type stripping)
 - A Signal account linked to signal-cli as a secondary device
 
 ## Setup
@@ -16,7 +16,7 @@ A Claude Code channel plugin that bridges Signal group chats to Claude Code sess
 ```bash
 git clone https://github.com/kbremner/claude-channel-signal.git
 cd claude-channel-signal
-bun install
+npm install
 ```
 
 ### 2. Register with Claude Code
@@ -27,8 +27,8 @@ Add to your project's `.mcp.json` or `~/.claude.json`:
 {
   "mcpServers": {
     "signal": {
-      "command": "bun",
-      "args": ["run", "/path/to/claude-channel-signal/src/server.ts"]
+      "command": "node",
+      "args": ["--experimental-strip-types", "/path/to/claude-channel-signal/src/server.ts"]
     }
   }
 }
